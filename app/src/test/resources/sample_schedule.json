@@ -1,0 +1,147 @@
+{
+  "weekdays": {
+    "1": 1,
+    "2": 2,
+    "3": 3,
+    "4": 4,
+    "5": 5,
+    "6": 6,
+    "7": 7
+  },
+  "courses": [
+    {
+      "name": "高等数学II（1）",
+      "teacher": "席亚讲师",
+      "room": "经管楼209",
+      "building": "经管楼",
+      "weeks": "5,7-18(周)",
+      "sections": [
+        1,
+        2
+      ],
+      "klass": "物联网[264-266]班",
+      "weekday": 1
+    },
+    {
+      "name": "思想道德与法治",
+      "teacher": "敖叶湘琼讲师",
+      "room": "经管楼207",
+      "building": "经管楼",
+      "weeks": "5,7-18(周)",
+      "sections": [
+        3,
+        4
+      ],
+      "klass": "物联网[264-266]班",
+      "weekday": 1
+    },
+    {
+      "name": "习近平新时代中国特色社会主义思想概论",
+      "teacher": "蒋海舲",
+      "room": "自动化楼209",
+      "building": "自动化楼",
+      "weeks": "5,7-18(周)",
+      "sections": [
+        8,
+        9
+      ],
+      "klass": "物联网[264-266]班",
+      "weekday": 1
+    },
+    {
+      "name": "高等数学II（1）",
+      "teacher": "席亚讲师",
+      "room": "教学楼①307",
+      "building": "教学楼①",
+      "weeks": "13-18(周)",
+      "sections": [
+        3,
+        4
+      ],
+      "klass": "物联网[264-266]班",
+      "weekday": 2
+    },
+    {
+      "name": "大学英语Ⅰ",
+      "teacher": "段国祥副教授",
+      "room": "教学楼①402",
+      "building": "教学楼①",
+      "weeks": "7-18(周)",
+      "sections": [
+        6,
+        7
+      ],
+      "klass": "物联网[264-266]班",
+      "weekday": 2
+    },
+    {
+      "name": "军事理论",
+      "teacher": "张正明",
+      "room": "经管楼205",
+      "building": "经管楼",
+      "weeks": "5,7-8,10-12,14-18(周)",
+      "sections": [
+        8,
+        9
+      ],
+      "klass": "物联网[264-266]班",
+      "weekday": 2
+    },
+    {
+      "name": "体育I",
+      "teacher": "汤淼",
+      "room": "（白云）北田径场",
+      "building": "运动场",
+      "weeks": "5-18(周)",
+      "sections": [
+        3,
+        4
+      ],
+      "klass": "物联网264班",
+      "weekday": 3
+    },
+    {
+      "name": "大学英语Ⅰ",
+      "teacher": "段国祥副教授",
+      "room": "经管楼206",
+      "building": "经管楼",
+      "weeks": "16-18(周)",
+      "sections": [
+        6,
+        7
+      ],
+      "klass": "物联网[264-266]班",
+      "weekday": 3
+    },
+    {
+      "name": "离散数学",
+      "teacher": "王若愉",
+      "room": "经管楼209",
+      "building": "经管楼",
+      "weeks": "7-18(周)",
+      "sections": [
+        8,
+        9
+      ],
+      "klass": "物联网[264-266]班",
+      "weekday": 3
+    },
+    {
+      "name": "离散数学",
+      "teacher": "王若愉",
+      "room": "教学楼①302",
+      "building": "教学楼①",
+      "weeks": "7-9,12-18(周)",
+      "sections": [
+        6,
+        7
+      ],
+      "klass": "物联网[264-266]班",
+      "weekday": 4
+    }
+  ],
+  "source": "/jsxsd/xskb/xskb_list.do?Ves632DSdyV=NEW_XSD_PYGL",
+  "params": {
+    "zc": "18"
+  }
+}

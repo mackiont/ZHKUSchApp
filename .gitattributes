@@ -1,0 +1,17 @@
+# 统一换行符：仓库内一律 LF，避免 Windows 上 checkout 出 CRLF 导致
+# gradlew 在 Linux/macOS 上出现 "bad interpreter"，以及 diff 噪声
+* text=auto eol=lf
+
+# Windows 脚本保持 CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# 二进制文件不要做换行符转换
+*.jar binary
+*.png binary
+*.jpg binary
+*.webp binary
+*.apk binary
+*.aab binary
+*.keystore binary
+*.jks binary

@@ -1,0 +1,28 @@
+# Gradle / Android 构建产物
+build/
+app/build/
+.gradle/
+.kotlin/
+app/release/
+captures/
+*.apk
+*.aab
+
+# 本机 SDK 路径，由各环境自行生成
+local.properties
+
+# 构建日志
+*.log
+
+# 打包产物（APK 通过 GitHub Releases 分发，不入库）
+dist/*.apk
+
+# IDE
+.idea/
+*.iml
+*.hprof
+.vscode/
+
+# 系统
+.DS_Store
+Thumbs.db
