@@ -93,4 +93,4 @@ jobs:
             > APK 为 debug 证书自签名，仅供个人侧载安装。
 
             下载 `${{ steps.ver.outputs.apk }}`，传到手机安装即可。
-            详细说明见 [README](../blob/main/README.md)。
+            详细说明见 [README](https://github.com/${{ github.repository }}/blob/main/README.md)。
