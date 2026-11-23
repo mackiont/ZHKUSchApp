@@ -43,11 +43,19 @@ jobs:
           gradle-version: ${{ env.GRADLE_VERSION }}
           cache-read-only: ${{ github.ref != 'refs/heads/main' }}
 
-      - name: Install Android SDK packages
+      # ubuntu-latest 自带 platform 36 / build-tools 36.0.0，无需安装；
+      # 这里只兜底接受 license，让 AGP 在镜像变化时还能自己补包
+      - name: Check Android SDK
         run: |
-          yes | sdkmanager --licenses > /dev/null 2>&1 || true
-          sdkmanager --install "platforms;android-36" "build-tools;36.0.0" > /dev/null 2>&1 \
-            || sdkmanager --install "platforms;android-36" > /dev/null
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          ls "$ANDROID_HOME/platforms" || true
+          ls "$ANDROID_HOME/build-tools" || true
+          SDKMGR="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          if [ -x "$SDKMGR" ]; then
+            yes | "$SDKMGR" --licenses > /dev/null 2>&1 || true
+          else
+            echo "sdkmanager 不在预期路径，跳过 license 接受"
+          fi
 
       - name: Build release APK
         run: gradle --no-daemon --stacktrace assembleRelease
