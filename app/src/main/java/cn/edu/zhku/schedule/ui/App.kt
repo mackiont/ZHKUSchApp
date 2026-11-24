@@ -147,8 +147,7 @@ fun ZhkuRoot(
             viewModel = viewModel,
             snackbarHostState = snackbarHostState,
             onImport = openImport,
-            onExport = openExport,
-            onAddWidget = addWidget
+            onExport = openExport
         )
     }
 
@@ -186,8 +185,7 @@ private fun MainScaffold(
     viewModel: ScheduleViewModel,
     snackbarHostState: SnackbarHostState,
     onImport: () -> Unit,
-    onExport: () -> Unit,
-    onAddWidget: () -> Unit
+    onExport: () -> Unit
 ) {
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
@@ -308,8 +306,7 @@ private fun MainScaffold(
                     onImport = onImport,
                     onExport = onExport,
                     onSwitchToOnline = { viewModel.switchToOnline() },
-                    onAdjustWeek = { viewModel.adjustCurrentWeek(it) },
-                    onAddWidget = onAddWidget
+                    onAdjustWeek = { viewModel.adjustCurrentWeek(it) }
                 )
             }
         }

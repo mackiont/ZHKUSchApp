@@ -1,14 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  2×2 正方形（约 110dp），只排 4 行，字号都刻意压小：
-  状态 → 课程名（最多两行）→ 时间+地点 → 倒计时。
-  行与行之间用 LinearLayout 顺排，不用 RelativeLayout 叠放，避免长课程名把倒计时压穿。
+  2×2 正方形（约 110dp），只排 4 行：状态 → 课程名（最多两行）→ 时间+地点 → 倒计时。
+
+  这里写的字号是 110dp 盒子下的基准值，实际运行时由 ScheduleWidget 按每个小组件
+  实例的真实尺寸整体缩放（setTextViewTextSize），再一起调内边距。原因：国产桌面
+  （HyperOS 等）会把 2×2 渲染得比 110dp 大，如果用 autoSize 让文字去「撑满」盒子，
+  课程名会变得比状态行大好几倍 —— 字体比例必须由代码固定，不能交给盒子尺寸。
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/widget_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/widget_background"
+    android:gravity="center_vertical"
     android:orientation="vertical"
     android:padding="11dp">
 
@@ -20,25 +24,20 @@
         android:maxLines="1"
         android:text="@string/widget_status_placeholder"
         android:textColor="@color/widget_accent"
-        android:textSize="9sp"
+        android:textSize="10sp"
         android:textStyle="bold" />
 
     <TextView
         android:id="@+id/widget_course"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
+        android:layout_height="wrap_content"
         android:layout_marginTop="3dp"
-        android:layout_weight="1"
-        android:gravity="center_vertical|start"
-        android:autoSizeMaxTextSize="18sp"
-        android:autoSizeMinTextSize="9sp"
-        android:autoSizeStepGranularity="1sp"
-        android:autoSizeTextType="uniform"
         android:ellipsize="end"
+        android:gravity="center_vertical|start"
         android:maxLines="2"
         android:text="@string/widget_course_placeholder"
         android:textColor="@color/widget_text_primary"
-        android:textSize="18sp"
+        android:textSize="13sp"
         android:textStyle="bold" />
 
     <TextView
@@ -50,14 +49,16 @@
         android:maxLines="1"
         android:text="@string/widget_meta_placeholder"
         android:textColor="@color/widget_text_secondary"
-        android:textSize="9sp" />
+        android:textSize="9.5sp" />
 
-    <Chronometer
+    <TextView
         android:id="@+id/widget_countdown"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="2dp"
+        android:ellipsize="end"
         android:maxLines="1"
+        android:text="@string/widget_countdown_placeholder"
         android:textColor="@color/widget_accent"
         android:textSize="11sp"
         android:textStyle="bold" />

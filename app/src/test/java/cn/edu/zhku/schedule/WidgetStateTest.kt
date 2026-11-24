@@ -42,7 +42,8 @@ class WidgetStateTest {
         assertEquals(WidgetPhase.UPCOMING, state.phase)
         assertEquals("高等数学II（1）", state.course)
         assertTrue(state.status, state.status.contains("今天"))
-        assertEquals("还有 %s", state.countdownFormat)
+        assertEquals("还有", state.countdownPrefix)
+        assertEquals("还有 1 小时 40 分", state.countdownText(now))
         assertEquals(LocalDateTime.of(2026, 11, 16, 8, 40), state.countdownTarget)
         // 上课那一刻要重绘
         assertEquals(LocalDateTime.of(2026, 11, 16, 8, 40), state.nextChange)
@@ -57,7 +58,8 @@ class WidgetStateTest {
 
         assertEquals(WidgetPhase.IN_CLASS, state.phase)
         assertEquals("正在上课", state.status)
-        assertEquals("还剩 %s", state.countdownFormat)
+        assertEquals("还剩", state.countdownPrefix)
+        assertEquals("还剩 1 小时 10 分", state.countdownText(now))
         assertEquals("至 10:10 · 经管楼209", state.meta)
         assertEquals(LocalDateTime.of(2026, 11, 16, 10, 10), state.countdownTarget)
         assertEquals(LocalDateTime.of(2026, 11, 16, 10, 10), state.nextChange)
@@ -101,6 +103,36 @@ class WidgetStateTest {
 
         assertEquals(WidgetPhase.EMPTY, state.phase)
         assertEquals("还没有课表", state.status)
-        assertNull(state.countdownFormat)
+        assertNull(state.countdownText(LocalDateTime.of(2026, 11, 16, 9, 0)))
+    }
+
+    @Test
+    fun countdownRoundsUpToWholeMinutes() {
+        // 7:20:40 → 距 08:40 还剩 79 分 20 秒，向上取整成 80 分
+        val now = LocalDateTime.of(2026, 11, 16, 7, 20, 40)
+        val state = WidgetState.compute(timetable(), sections, now)
+        assertEquals("还有 1 小时 20 分", state.countdownText(now))
+
+        // 不足一分钟也显示「1 分」，不会出现「0 分」
+        val almost = LocalDateTime.of(2026, 11, 16, 8, 39, 30)
+        val near = WidgetState.compute(timetable(), sections, almost)
+        assertEquals("还有 1 分", near.countdownText(almost))
+    }
+
+    @Test
+    fun refreshHappensAtNextWholeMinute() {
+        // 倒计时只到分钟，所以下一个整分就要重绘一次；比状态切换早，取 7:01
+        val now = LocalDateTime.of(2026, 11, 16, 7, 0, 15)
+        val state = WidgetState.compute(timetable(), sections, now)
+        assertEquals(LocalDateTime.of(2026, 11, 16, 7, 1), state.nextRefreshAt(now))
+
+        // 临近上课时，状态切换（8:40）比下一个整分更早
+        val late = LocalDateTime.of(2026, 11, 16, 8, 39, 50)
+        val near = WidgetState.compute(timetable(), sections, late)
+        assertEquals(LocalDateTime.of(2026, 11, 16, 8, 40), near.nextRefreshAt(late))
+
+        // 没有倒计时（没有课表）时只按状态切换刷新
+        val empty = WidgetState.compute(null, sections, now)
+        assertEquals(LocalDateTime.of(2026, 11, 17, 0, 0), empty.nextRefreshAt(now))
     }
 }

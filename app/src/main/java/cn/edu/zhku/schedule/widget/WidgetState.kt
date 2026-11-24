@@ -4,7 +4,9 @@ import cn.edu.zhku.schedule.data.ClassSlot
 import cn.edu.zhku.schedule.data.ScheduleMath
 import cn.edu.zhku.schedule.data.SectionTime
 import cn.edu.zhku.schedule.data.Timetable
+import java.time.Duration
 import java.time.LocalDateTime
+import java.time.temporal.ChronoUnit
 
 /** 小组件当前该显示什么 */
 enum class WidgetPhase {
@@ -27,19 +29,43 @@ enum class WidgetPhase {
  * 2×2 只有约 110dp 见方，所以行数被压到最少：状态、课程名、时间+地点、倒计时。
  * 课程名给两行，其余都是一行。
  *
- * [nextChange] 是「下一次需要重新渲染的时刻」：上课、下课、跨天（今天/明天 会变）。
- * 只在三个时刻各设一个闹钟就够了 —— 倒计时本身由 Chronometer 自己按秒走，不需要每分钟唤醒。
+ * 倒计时只显示到**分钟**（「还有 1 小时 20 分」），不做逐秒跳动：
+ * 秒级数字既占宽度，又会让小组件看起来一直在变。因此 [nextRefreshAt] 会把
+ * 下一个整分也算进刷新时刻里。
  */
 data class WidgetState(
     val phase: WidgetPhase,
     val status: String,
     val course: String,
     val meta: String,
-    /** Chronometer 的格式串（含一个 %s），null 表示不显示倒计时 */
-    val countdownFormat: String? = null,
+    /** 倒计时前缀：「还有」/「还剩」；null 表示不显示倒计时 */
+    val countdownPrefix: String? = null,
     val countdownTarget: LocalDateTime? = null,
+    /** 状态会变的时刻：上课、下课、跨天 */
     val nextChange: LocalDateTime? = null
 ) {
+
+    /** 倒计时文案，例如「还有 1 小时 20 分」；null 表示这屏不该有倒计时 */
+    fun countdownText(now: LocalDateTime): String? {
+        val target = countdownTarget ?: return null
+        val prefix = countdownPrefix ?: return null
+        return "$prefix ${minutesLabel(now, target)}"
+    }
+
+    /**
+     * 下一次需要重绘的时刻。
+     *
+     * 倒计时精确到分钟，所以下一个整分要重绘一次；状态切换（上课 / 下课 / 跨天）
+     * 也必须重绘。两者取更早的那个，避免多排一个没必要的闹钟。
+     */
+    fun nextRefreshAt(now: LocalDateTime): LocalDateTime? {
+        val nextMinute = if (countdownTarget == null) {
+            null
+        } else {
+            now.truncatedTo(ChronoUnit.MINUTES).plusMinutes(1)
+        }
+        return listOfNotNull(nextChange, nextMinute).minOrNull()
+    }
 
     companion object {
 
@@ -67,7 +93,7 @@ data class WidgetState(
                     status = "正在上课",
                     course = current.course.name,
                     meta = metaOf("至 ${current.endLabel}", current),
-                    countdownFormat = "还剩 %s",
+                    countdownPrefix = "还剩",
                     countdownTarget = current.end,
                     nextChange = current.end
                 )
@@ -92,7 +118,7 @@ data class WidgetState(
                 status = "下一节课 · ${ScheduleMath.dateLabel(next.date, now.toLocalDate())}",
                 course = next.course.name,
                 meta = metaOf(next.startLabel, next),
-                countdownFormat = "还有 %s",
+                countdownPrefix = "还有",
                 countdownTarget = next.start,
                 nextChange = minOf(next.start, midnight)
             )
@@ -102,5 +128,22 @@ data class WidgetState(
             val place = slot.course.place()
             return if (place.isBlank()) timeLabel else "$timeLabel · $place"
         }
+    }
+}
+
+/**
+ * 只到分钟的剩余时间：`1 小时 20 分` / `2 小时` / `45 分`。
+ *
+ * 向上取整，剩 30 秒时显示「1 分」而不是「0 分」；不足一分钟也按 1 分算。
+ */
+internal fun minutesLabel(from: LocalDateTime, to: LocalDateTime): String {
+    val seconds = Duration.between(from, to).seconds
+    val total = ((seconds + 59) / 60).coerceAtLeast(1)
+    val hours = total / 60
+    val minutes = total % 60
+    return when {
+        hours > 0 && minutes > 0 -> "$hours 小时 $minutes 分"
+        hours > 0 -> "$hours 小时"
+        else -> "$minutes 分"
     }
 }

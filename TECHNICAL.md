@@ -15,7 +15,7 @@
 | 主要依赖 | compose-bom 2025.05.00、datastore-preferences 1.1.7、work-runtime-ktx 2.10.1、navigation-compose 2.9.0、kotlinx-serialization-json 1.8.1 |
 | 网络 | `HttpURLConnection` 手写，不引 OkHttp / Retrofit（只有一所学校、几个固定接口） |
 | HTML 解析 | 正则 + 字符串切片，不引 Jsoup（页面结构稳定，且能精确控制容错） |
-| 测试 | JUnit4 + Robolectric 4.14.1 + Compose UI Test，55 个用例（含 9 张界面截图） |
+| 测试 | JUnit4 + Robolectric 4.14.1 + Compose UI Test，57 个用例（含 11 张界面截图） |
 | 代码量 | `app/src/main` 约 4.5k 行 Kotlin |
 
 不使用 Hilt / Koin：依赖图只有 `Prefs → ScheduleRepository → ZhkuClient`，手工传参比配注解更短。
@@ -304,45 +304,69 @@ private suspend fun write(block: suspend (MutablePreferences) -> Unit) {
 | `UPCOMING` | 21 天内有下一节课 | 「还有」到上课 |
 | `IDLE` | 21 天内都没课 | 无（避免出现几十小时的倒计时） |
 
-同时给出 `nextChange` —— 下一次需要重新渲染的时刻（上课、下课、跨天三者取最近）。
+同时给出：
+
+- `countdownText(now)` —— 只到分钟的文案（`还有 1 小时 20 分`），向上取整，剩 30 秒也显示「1 分」
+- `nextChange` —— 状态会变的时刻（上课、下课、跨天三者取最近）
+- `nextRefreshAt(now)` —— 下一次需要重绘的时刻，取 `nextChange` 与**下一个整分**中更早的那个
 
 ### 「准时」怎么做到
 
-关键在于**不靠定时唤醒**：
+倒计时只显示到分钟，所以刷新分两类闹钟：
 
-1. **倒计时数字**交给 `Chronometer`：`setChronometer(elapsedRealtime() + remain, format, true)` + `setChronometerCountDown(true)`，由桌面进程按秒自己刷新，App 被冻结、锁屏都不影响。
-2. **状态切换**只在 `nextChange` 那一刻用 `AlarmManager` 唤醒一次，改完再排下一次。所以一天最多响几次，而不是每分钟。
+1. **状态切换**：`nextChange` 那一刻用 `setExactAndAllowWhileIdle(RTC_WAKEUP, ...)` 唤醒一次；
+   Android 14+ 无精确闹钟权限时退化为 `setAndAllowWhileIdle`，只影响状态切换的时刻。
+2. **整分刷新**：有倒计时时才排，落在下一个整分，用普通 `set(RTC_WAKEUP, ...)` ——
+   不进 Doze 白名单，屏幕亮着时基本准点，灭屏被合批，屏幕一亮就补上，
+   不值得为它每分钟唤醒 CPU。
 3. 兜底 `updatePeriodMillis = 1800000`（30 分钟），闹钟被系统清掉也不会一直停在旧状态。
 
-闹钟用 `setExactAndAllowWhileIdle(RTC_WAKEUP, ...)`；Android 14+ 无精确闹钟权限时退化为 `setAndAllowWhileIdle`，只影响状态切换的时刻，倒计时仍然准。
-
-另外会先写一份静态文案（`views.setTextViewText`）再设 Chronometer：万一桌面没把 Chronometer 跑起来，也不会留一行空白。
+两类闹钟用不同的 `requestCode`（1001 / 1003），避免共用 `PendingIntent` 互相覆盖。
+文本是算好的静态文案，直接 `setTextViewText`，不依赖桌面能不能跑 `Chronometer`
+（1.4.0 及之前用 Chronometer 做逐秒跳动，1.5.0 起改为分钟级静态文案）。
 
 ### 2×2 的排版约束
 
-110dp 塞四行是极限，实测过的配置：
+110dp 塞四行是极限，基准字号（110dp 盒子下）：
 
 | 行 | 字号 | 约束 |
 |---|---|---|
-| 状态（`下一节课 · 今天`） | 9sp | 单行 |
-| 课程名 | `autoSizeText` 9–14sp | `layout_weight = 1`，吸收剩余高度 |
-| 时间 · 地点 | 9sp | 单行 |
-| 倒计时 | 11sp | 单行，Chronometer |
+| 状态（`下一节课 · 今天`） | 10sp | 单行 |
+| 课程名 | 13sp | 最多两行，`ellipsize = end` |
+| 时间 · 地点 | 9.5sp | 单行 |
+| 倒计时 | 11sp | 单行，超出会省略 |
 
-课程名那一行给弹性高度的目的：系统字体放大时是**课程名缩小**，而不是把倒计时顶出边界。`WidgetScreenshotTest` 会断言每个控件都在 110dp 边界内，防止改字号时悄悄溢出。
+**字号不能交给 autoSize。** 早期版本把课程名写成 `autoSizeTextType="uniform"`（上限 18sp）
+并给 `layout_weight = 1` 吸收剩余高度，思路是「小盒子缩字、大盒子不变」。实际相反：
+部分国产桌面（HyperOS 等）会把 2×2 渲染到 150dp 以上，`layout_weight` 把多出来的高度
+全给了课程名那一行，autoSize 就一路顶到 18sp，课程名比状态行大好几倍 —— 用户看到的就是
+「字体比例不正常」。
+
+现在的做法：
+
+- XML 里写 110dp 基准字号，`ScheduleWidget.buildViews(context, state, now, scale)` 用
+  `RemoteViews.setTextViewTextSize()` 按 `scale` 统一放大四行字号，内边距同步缩放
+- `scale` 由 `scaleFor(manager, id)` 用 `getAppWidgetOptions(id)` 的
+  `OPTION_APPWIDGET_MIN_WIDTH/HEIGHT` 算出：`短边 / 110`，夹在 `1.0..1.6`
+- 比例因此恒定：课程名与状态行永远是 `13 : 10`，盒子变大只是整体变大，不会只肥一行
+
+`WidgetScreenshotTest` 会断言每个控件都在 110dp 边界内、倒计时不被截断，
+并在 110dp / 160dp 两种尺寸下断言 `课程名/状态行` 的字号比一致 —— 防止再次引入
+「跟着盒子吃高度」的写法。
 
 ### 添加方式：绕过系统的小组件列表
 
-`WidgetPin.request()` 用的不是"打开小组件选择器"（系统没有这个 API），而是 Android 8.0 的 `AppWidgetManager.requestPinAppWidget()`：由系统直接弹「是否将小组件添加到桌面」，用户确认即固定，完全不经过列表。
+`WidgetPin.request()` 用的不是"打开小组件选择器"（系统没有这个 API），而是 Android 8.0 的
+`AppWidgetManager.requestPinAppWidget()`：由系统直接弹「是否将小组件添加到桌面」，
+用户确认即固定，完全不经过列表。这条路径对小米 / HyperOS 特别有用 ——
+它们的「添加工具」列表里不一定列出第三方应用。
 
-这条路径对小米 / HyperOS 特别有用 —— 它们的「添加工具」列表里不一定列出第三方应用。
+入口只有长按图标的静态快捷方式：`res/xml/shortcuts.xml`，action
+`cn.edu.zhku.schedule.action.ADD_WIDGET`；`MainActivity` 消费该 intent
+（`onCreate` 只在首次创建时消费，避免旋转重建重复弹窗）后交给 Compose。
 
-两个入口共用它：
-
-| 入口 | 实现 |
-|---|---|
-| 长按应用图标 → 「添加小组件」 | 静态快捷方式 `res/xml/shortcuts.xml`，action `cn.edu.zhku.schedule.action.ADD_WIDGET`；`MainActivity` 消费该 intent（`onCreate` 只在首次创建时消费，避免旋转重建重复弹窗）后交给 Compose |
-| 设置 → 桌面 → 添加桌面小组件 | 直接调 `WidgetPin.request()` |
+> 1.4.0 曾在设置页放过一个「添加桌面小组件」入口，1.5.0 按反馈移除 ——
+> 设置页只放配置项，添加小组件统一走桌面长按。
 
 桌面不支持时 `isRequestPinAppWidgetSupported()` 返回 false，回退到说明手动路径的对话框。
 
@@ -425,7 +449,7 @@ val robolectricSdk35 by configurations.creating { isTransitive = false }
 
 ## 14. 测试
 
-55 个用例，全部不需要账号、不需要真机、不联网。
+57 个用例，全部不需要账号、不需要真机、不联网。
 
 | 测试类 | 数量 | 内容 |
 |---|---|---|
@@ -436,8 +460,7 @@ val robolectricSdk35 by configurations.creating { isTransitive = false }
 | `LocalModeStoreTest` | 5 | 本地模式写入与切换 |
 | `ScreenshotTest` | 7 | 首页 / 课表 / 设置 / 登录 / 深色的真实渲染截图 |
 | `WidgetStateTest` | 6 | 小组件四种状态 + `nextChange` 时刻 |
-| `WidgetScreenshotTest` | 2 | 2×2 浅色 / 深色渲染，并断言控件不越界 |
-| `SettingsWidgetEntryTest` | 1 | 设置页「添加桌面小组件」能滚到、可见、点击回调生效 |
+| `WidgetScreenshotTest` | 3 | 2×2 浅色 / 深色渲染、控件不越界、倒计时不被截断、两种尺寸下字号比一致 |
 
 界面截图走 Robolectric `@GraphicsMode(NATIVE)` + Compose UI Test，输出到 `app/build/screenshots/`，CI 作为 artifact 上传。仓库里的 `screenshots/` 就是从这些产物里挑出来提交的。
 
@@ -459,7 +482,7 @@ val robolectricSdk35 by configurations.creating { isTransitive = false }
 - 强智单点登录会挤掉浏览器端会话，反之亦然
 - 「白云校区时间节次」在服务端返回空表（与 Python 版一致），所以只用「默认校区时间节次」
 - 本地课表没有导出日期，跨学期沿用同一个文件会不准，用「当前第 N 周」校正或重新导入
-- 小组件在无精确闹钟权限时，状态切换最多延迟几分钟（倒计时不受影响）
+- 小组件在无精确闹钟权限时，状态切换最多延迟几分钟；倒计时每分钟刷新，灭屏进 Doze 后可能慢一拍
 
 ---
 

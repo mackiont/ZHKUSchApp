@@ -4,19 +4,16 @@
 
     <!-- 桌面小组件。label 带上应用名，方便在系统的小组件列表里按"仲恺"搜到 -->
     <string name="widget_label">仲恺课表 · 最近一节课</string>
-    <string name="widget_description">2×2 小组件：显示最近一节课的课程、地点与实时倒计时</string>
+    <string name="widget_description">2×2 小组件：显示最近一节课的课程、地点与倒计时</string>
     <!-- 下面几条只用于小组件选择器的预览，实际文字在运行时替换 -->
     <string name="widget_status_placeholder">下一节课 · 今天</string>
     <string name="widget_course_placeholder">高等数学II（1）</string>
     <string name="widget_meta_placeholder">08:40 · 经管楼209</string>
+    <string name="widget_countdown_placeholder">还有 1 小时 20 分</string>
 
     <!-- 长按应用图标的快捷菜单 -->
     <string name="shortcut_add_widget_short">添加小组件</string>
     <string name="shortcut_add_widget_long">添加「最近一节课」小组件</string>
-
-    <!-- 设置页入口 -->
-    <string name="settings_add_widget">添加桌面小组件</string>
-    <string name="settings_add_widget_subtitle">2×2 正方形，显示最近一节课与倒计时</string>
 
     <!-- 桌面不支持直接固定时的图文引导 -->
     <string name="widget_guide_title">把小组件加到桌面</string>

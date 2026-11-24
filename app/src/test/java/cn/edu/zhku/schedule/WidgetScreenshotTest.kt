@@ -47,14 +47,14 @@ class WidgetScreenshotTest {
         fetchedAt = monday.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
     )
 
-    private fun render(name: String): View {
+    private fun render(name: String, sizeDp: Int = 110, scale: Float = 1f): View {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val now = LocalDateTime.of(2026, 11, 16, 7, 20)
         val state = WidgetState.compute(timetable, sections, now)
-        val views = ScheduleWidget.buildViews(context, state, now)
+        val views = ScheduleWidget.buildViews(context, state, now, scale)
         val root = views.apply(context, FrameLayout(context))
 
-        val size = (110 * context.resources.displayMetrics.density).toInt()
+        val size = (sizeDp * context.resources.displayMetrics.density).toInt()
         val spec = View.MeasureSpec.makeMeasureSpec(size, View.MeasureSpec.EXACTLY)
         root.measure(spec, spec)
         root.layout(0, 0, size, size)
@@ -83,8 +83,35 @@ class WidgetScreenshotTest {
         assertEquals("下一节课 · 今天", root.findViewById<TextView>(R.id.widget_status).text.toString())
         assertEquals("高等数学II（1）", root.findViewById<TextView>(R.id.widget_course).text.toString())
         assertEquals("08:40 · 经管楼209", root.findViewById<TextView>(R.id.widget_meta).text.toString())
-        // Chronometer 未启动时也要有静态文案兜底（距 08:40 还有 1 小时 20 分）
-        assertEquals("还有 1:20:00", root.findViewById<TextView>(R.id.widget_countdown).text.toString())
+        // 倒计时只到分钟（距 08:40 还有 1 小时 20 分）
+        val countdown = root.findViewById<TextView>(R.id.widget_countdown)
+        assertEquals("还有 1 小时 20 分", countdown.text.toString())
+        // 文案必须整行放下，被截断意味着用户看不到完整的倒计时
+        assertEquals("倒计时被截断", countdown.text.length, countdown.layout.getLineEnd(0))
+    }
+
+    /**
+     * 国产桌面（HyperOS 等）会把 2×2 渲染得比 110dp 大。
+     * 字号可以跟着盒子放大，但**比例必须恒定** —— 1.4.0 上课程名被 autoSize
+     * 撑到把状态行衬得像脚注，就是比例失控。
+     */
+    @Test
+    fun fontSizeScalesButKeepsTheSameRatio() {
+        val small = render("widget_scale_1", sizeDp = 110, scale = 1f)
+        val large = render("widget_large", sizeDp = 160, scale = 160 / 110f)
+
+        fun ratio(root: View): Float =
+            root.findViewById<TextView>(R.id.widget_course).textSize /
+                root.findViewById<TextView>(R.id.widget_status).textSize
+
+        // 13sp / 10sp，两个尺寸下都该是 1.3
+        assertEquals(1.3f, ratio(small), 0.02f)
+        assertEquals(1.3f, ratio(large), 0.02f)
+        assertTrue(
+            "放大后字号应当真的变大",
+            large.findViewById<TextView>(R.id.widget_course).textSize >
+                small.findViewById<TextView>(R.id.widget_course).textSize
+        )
     }
 
     @Test
