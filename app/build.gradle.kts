@@ -67,26 +67,28 @@ android {
 
 // Robolectric 默认在测试进程里自己下载 android-all 包，CI 上会偶发
 // `Failed to fetch maven artifact`，导致整个测试类直接失败。
-// 改成让 Gradle 正常解析这个包（走项目配置的仓库、可用缓存），
+// 改成让 Gradle 正常解析这些包（走项目配置的仓库、可用缓存），
 // 测试时指向本地目录读取，Robolectric 不再联网下载。
-val robolectricAndroidAll by configurations.creating {
+//
+// 注意：两个包同属 org.robolectric:android-all-instrumented，放在同一个
+// configuration 里 Gradle 会按版本冲突取最高的那个，14 会被顶成 15，
+// 结果目录里缺少 @Config(sdk = [34]) 需要的那份。所以各用一个 configuration。
+val robolectricSdk34 by configurations.creating {
     isTransitive = false
     isCanBeConsumed = false
-    isCanBeResolved = true
+}
+
+val robolectricSdk35 by configurations.creating {
+    isTransitive = false
+    isCanBeConsumed = false
 }
 
 val robolectricDepsDir = layout.buildDirectory.dir("robolectric-deps")
 
-// 测试沙箱用 @Config(sdk = [34])；Robolectric 解析资源和 manifest 时还要用
-// targetSdk 对应的 compile SDK，而 4.14.1 最高只支持 35，所以两个包都要有。
-val robolectricSdkJars = listOf(
-    "14-robolectric-10818077-i7",
-    "15-robolectric-12650502-i7"
-)
-
 val syncRobolectricDeps by tasks.registering(Copy::class) {
     description = "把 Robolectric 的 android-all 包放进测试可读的本地目录"
-    from(robolectricAndroidAll)
+    from(robolectricSdk34)
+    from(robolectricSdk35)
     into(robolectricDepsDir)
 }
 
@@ -120,10 +122,11 @@ dependencies {
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.robolectric:robolectric:4.14.1")
-    // Robolectric 运行时需要的 android-all 包，交给 Gradle 统一解析（见文件下方配置）
-    robolectricSdkJars.forEach {
-        robolectricAndroidAll("org.robolectric:android-all-instrumented:$it")
-    }
+    // Robolectric 运行时需要的 android-all 包，交给 Gradle 统一解析（见文件下方配置）。
+    // 34 用于 @Config(sdk = [34]) 的测试沙箱；35 用于解析 manifest / 资源，
+    // 因为 targetSdk 36 超出 Robolectric 4.14.1 的支持上限，它取 35。
+    robolectricSdk34("org.robolectric:android-all-instrumented:14-robolectric-10818077-i7")
+    robolectricSdk35("org.robolectric:android-all-instrumented:15-robolectric-12650502-i7")
     testImplementation("androidx.test.ext:junit:1.2.1")
     testImplementation("androidx.compose.ui:ui-test-junit4")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
