@@ -1,5 +1,6 @@
 package cn.edu.zhku.schedule.ui
 
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
@@ -11,6 +12,7 @@ import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -22,14 +24,19 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -38,12 +45,14 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import cn.edu.zhku.schedule.R
 import cn.edu.zhku.schedule.ScheduleViewModel
 import cn.edu.zhku.schedule.UiState
 import cn.edu.zhku.schedule.data.LocalImport
 import cn.edu.zhku.schedule.data.ScheduleMath
 import cn.edu.zhku.schedule.data.Timetable
 import cn.edu.zhku.schedule.data.WeekSource
+import cn.edu.zhku.schedule.widget.WidgetPin
 import kotlinx.coroutines.delay
 import java.time.LocalDate
 
@@ -52,9 +61,32 @@ private const val ROUTE_WEEK = "week"
 private const val ROUTE_SETTINGS = "settings"
 
 @Composable
-fun ZhkuRoot(viewModel: ScheduleViewModel) {
+fun ZhkuRoot(
+    viewModel: ScheduleViewModel,
+    widgetRequest: Int = 0,
+    onWidgetRequestHandled: () -> Unit = {}
+) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+    val context = LocalContext.current
+    var showWidgetGuide by remember { mutableStateOf(false) }
+
+    // 请系统直接把小组件固定到桌面；桌面不支持时退回到图文引导
+    val addWidget: () -> Unit = {
+        if (WidgetPin.request(context)) {
+            Toast.makeText(context, R.string.widget_pin_requested, Toast.LENGTH_SHORT).show()
+        } else {
+            showWidgetGuide = true
+        }
+    }
+
+    // 长按图标的「添加小组件」快捷方式：进应用即弹系统的添加确认
+    LaunchedEffect(widgetRequest) {
+        if (widgetRequest > 0) {
+            addWidget()
+            onWidgetRequestHandled()
+        }
+    }
 
     LaunchedEffect(state.toast) {
         val message = state.toast
@@ -115,7 +147,8 @@ fun ZhkuRoot(viewModel: ScheduleViewModel) {
             viewModel = viewModel,
             snackbarHostState = snackbarHostState,
             onImport = openImport,
-            onExport = openExport
+            onExport = openExport,
+            onAddWidget = addWidget
         )
     }
 
@@ -126,6 +159,24 @@ fun ZhkuRoot(viewModel: ScheduleViewModel) {
             onConfirm = { week -> viewModel.confirmImport(week) }
         )
     }
+
+    if (showWidgetGuide) {
+        AddWidgetGuideDialog(onDismiss = { showWidgetGuide = false })
+    }
+}
+
+@Composable
+private fun AddWidgetGuideDialog(onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.widget_guide_title)) },
+        text = { Text(stringResource(R.string.widget_guide_body)) },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.widget_guide_ok))
+            }
+        }
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -135,7 +186,8 @@ private fun MainScaffold(
     viewModel: ScheduleViewModel,
     snackbarHostState: SnackbarHostState,
     onImport: () -> Unit,
-    onExport: () -> Unit
+    onExport: () -> Unit,
+    onAddWidget: () -> Unit
 ) {
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
@@ -256,7 +308,8 @@ private fun MainScaffold(
                     onImport = onImport,
                     onExport = onExport,
                     onSwitchToOnline = { viewModel.switchToOnline() },
-                    onAdjustWeek = { viewModel.adjustCurrentWeek(it) }
+                    onAdjustWeek = { viewModel.adjustCurrentWeek(it) },
+                    onAddWidget = onAddWidget
                 )
             }
         }

@@ -2,11 +2,25 @@
 <resources>
     <string name="app_name">仲恺课表</string>
 
-    <!-- 桌面小组件 -->
-    <string name="widget_label">最近一节课</string>
+    <!-- 桌面小组件。label 带上应用名，方便在系统的小组件列表里按"仲恺"搜到 -->
+    <string name="widget_label">仲恺课表 · 最近一节课</string>
     <string name="widget_description">2×2 小组件：显示最近一节课的课程、地点与实时倒计时</string>
     <!-- 下面几条只用于小组件选择器的预览，实际文字在运行时替换 -->
     <string name="widget_status_placeholder">下一节课 · 今天</string>
     <string name="widget_course_placeholder">高等数学II（1）</string>
     <string name="widget_meta_placeholder">08:40 · 经管楼209</string>
+
+    <!-- 长按应用图标的快捷菜单 -->
+    <string name="shortcut_add_widget_short">添加小组件</string>
+    <string name="shortcut_add_widget_long">添加「最近一节课」小组件</string>
+
+    <!-- 设置页入口 -->
+    <string name="settings_add_widget">添加桌面小组件</string>
+    <string name="settings_add_widget_subtitle">2×2 正方形，显示最近一节课与倒计时</string>
+
+    <!-- 桌面不支持直接固定时的图文引导 -->
+    <string name="widget_guide_title">把小组件加到桌面</string>
+    <string name="widget_guide_body">系统桌面不支持一键添加，需要手动操作：\n\n1. 先打开一次本应用（让系统完成小组件扫描）\n2. 长按桌面空白处 → 添加工具 / 小组件\n3. 在列表里找「仲恺课表」，名字可能显示为「最近一节课」，拖到桌面\n\n小米 / HyperOS：入口在「添加工具」→「全部应用」，个别版本需要重启一次桌面才会刷新列表。\n\n如果列表里始终没有，可尝试重启手机，或在应用管理里给本应用「自启动」权限后再看。</string>
+    <string name="widget_guide_ok">知道了</string>
+    <string name="widget_pin_requested">已请系统添加，请在弹窗里点「添加」</string>
 </resources>

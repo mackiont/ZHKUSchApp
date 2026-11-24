@@ -60,6 +60,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -67,6 +68,7 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import cn.edu.zhku.schedule.BuildConfig
+import cn.edu.zhku.schedule.R
 import cn.edu.zhku.schedule.data.CampusPreset
 import cn.edu.zhku.schedule.data.SectionTime
 import cn.edu.zhku.schedule.data.SectionTimes
@@ -95,7 +97,8 @@ fun SettingsScreen(
     onImport: () -> Unit = {},
     onExport: () -> Unit = {},
     onSwitchToOnline: () -> Unit = {},
-    onAdjustWeek: (Int) -> Unit = {}
+    onAdjustWeek: (Int) -> Unit = {},
+    onAddWidget: () -> Unit = {}
 ) {
     val context = LocalContext.current
     var permissionTick by remember { mutableIntStateOf(0) }
@@ -363,6 +366,24 @@ fun SettingsScreen(
                         onClick = { editingSection = index }
                     )
                 }
+            }
+        }
+
+        // ---------------- 桌面小组件
+        item {
+            SettingsCard("桌面") {
+                SettingRow(
+                    title = stringResource(R.string.settings_add_widget),
+                    subtitle = stringResource(R.string.settings_add_widget_subtitle),
+                    trailing = {
+                        TextButton(onClick = onAddWidget) { Text("添加") }
+                    }
+                )
+                Hint(
+                    "会直接请系统把 2×2 小组件放到桌面。部分系统（如小米 / HyperOS）的" +
+                        "小组件列表里不显示第三方应用，用这个入口可以绕过去。" +
+                        "也可以长按应用图标，在快捷菜单里选「添加小组件」。"
+                )
             }
         }
 

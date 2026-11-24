@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 长按应用图标弹出的快捷菜单：加一个「添加小组件」入口。
+     部分桌面（如小米）的小组件列表里找不到第三方应用，从这里可以
+     直接请系统把小组件固定到桌面，不需要在列表里翻。 -->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:enabled="true"
+        android:icon="@drawable/ic_widget_add"
+        android:shortcutId="add_widget"
+        android:shortcutLongLabel="@string/shortcut_add_widget_long"
+        android:shortcutShortLabel="@string/shortcut_add_widget_short">
+        <intent
+            android:action="cn.edu.zhku.schedule.action.ADD_WIDGET"
+            android:targetClass="cn.edu.zhku.schedule.MainActivity"
+            android:targetPackage="cn.edu.zhku.schedule" />
+    </shortcut>
+</shortcuts>

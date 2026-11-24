@@ -15,7 +15,7 @@
 | 主要依赖 | compose-bom 2025.05.00、datastore-preferences 1.1.7、work-runtime-ktx 2.10.1、navigation-compose 2.9.0、kotlinx-serialization-json 1.8.1 |
 | 网络 | `HttpURLConnection` 手写，不引 OkHttp / Retrofit（只有一所学校、几个固定接口） |
 | HTML 解析 | 正则 + 字符串切片，不引 Jsoup（页面结构稳定，且能精确控制容错） |
-| 测试 | JUnit4 + Robolectric 4.14.1 + Compose UI Test，54 个用例（含 9 张界面截图） |
+| 测试 | JUnit4 + Robolectric 4.14.1 + Compose UI Test，55 个用例（含 9 张界面截图） |
 | 代码量 | `app/src/main` 约 4.5k 行 Kotlin |
 
 不使用 Hilt / Koin：依赖图只有 `Prefs → ScheduleRepository → ZhkuClient`，手工传参比配注解更短。
@@ -55,6 +55,7 @@ app/src/main/java/cn/edu/zhku/schedule/
 └── widget/
     ├── WidgetState.kt       小组件状态机（纯函数，可单测）
     ├── ScheduleWidget.kt    RemoteViews 渲染 + 闹钟调度
+    ├── WidgetPin.kt         把小组件固定到桌面（requestPinAppWidget）
     ├── ScheduleWidgetProvider.kt  AppWidgetProvider 生命周期
     └── WidgetAlarmReceiver.kt     状态切换闹钟回调
 ```
@@ -330,6 +331,26 @@ private suspend fun write(block: suspend (MutablePreferences) -> Unit) {
 
 课程名那一行给弹性高度的目的：系统字体放大时是**课程名缩小**，而不是把倒计时顶出边界。`WidgetScreenshotTest` 会断言每个控件都在 110dp 边界内，防止改字号时悄悄溢出。
 
+### 添加方式：绕过系统的小组件列表
+
+`WidgetPin.request()` 用的不是"打开小组件选择器"（系统没有这个 API），而是 Android 8.0 的 `AppWidgetManager.requestPinAppWidget()`：由系统直接弹「是否将小组件添加到桌面」，用户确认即固定，完全不经过列表。
+
+这条路径对小米 / HyperOS 特别有用 —— 它们的「添加工具」列表里不一定列出第三方应用。
+
+两个入口共用它：
+
+| 入口 | 实现 |
+|---|---|
+| 长按应用图标 → 「添加小组件」 | 静态快捷方式 `res/xml/shortcuts.xml`，action `cn.edu.zhku.schedule.action.ADD_WIDGET`；`MainActivity` 消费该 intent（`onCreate` 只在首次创建时消费，避免旋转重建重复弹窗）后交给 Compose |
+| 设置 → 桌面 → 添加桌面小组件 | 直接调 `WidgetPin.request()` |
+
+桌面不支持时 `isRequestPinAppWidgetSupported()` 返回 false，回退到说明手动路径的对话框。
+
+配套还有两处兼容性细节：
+
+- `widget_schedule_info.xml` 同时声明 `previewImage`（静态 PNG）与 `previewLayout`（API 31+）——部分国产桌面只认前者，缺了会显示空白预览
+- `widget_label` 带上应用名（`仲恺课表 · 最近一节课`），便于在系统列表里按「仲恺」搜到
+
 ### 刷新触发点
 
 - 任何 `Prefs.write()`（登录 / 抓取 / 导入 / 改节次 / 退出）
@@ -404,7 +425,7 @@ val robolectricSdk35 by configurations.creating { isTransitive = false }
 
 ## 14. 测试
 
-54 个用例，全部不需要账号、不需要真机、不联网。
+55 个用例，全部不需要账号、不需要真机、不联网。
 
 | 测试类 | 数量 | 内容 |
 |---|---|---|
@@ -416,6 +437,7 @@ val robolectricSdk35 by configurations.creating { isTransitive = false }
 | `ScreenshotTest` | 7 | 首页 / 课表 / 设置 / 登录 / 深色的真实渲染截图 |
 | `WidgetStateTest` | 6 | 小组件四种状态 + `nextChange` 时刻 |
 | `WidgetScreenshotTest` | 2 | 2×2 浅色 / 深色渲染，并断言控件不越界 |
+| `SettingsWidgetEntryTest` | 1 | 设置页「添加桌面小组件」能滚到、可见、点击回调生效 |
 
 界面截图走 Robolectric `@GraphicsMode(NATIVE)` + Compose UI Test，输出到 `app/build/screenshots/`，CI 作为 artifact 上传。仓库里的 `screenshots/` 就是从这些产物里挑出来提交的。
 

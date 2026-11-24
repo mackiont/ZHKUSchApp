@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 快捷菜单「添加小组件」的图标：一个 2×2 的格子加加号 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#FF000000"
+        android:pathData="M3,3h7v7H3zM14,3h7v7h-7zM3,14h7v7H3zM17.5,14h2v3.5H23v2h-3.5V23h-2v-3.5H14v-2h3.5z" />
+</vector>
