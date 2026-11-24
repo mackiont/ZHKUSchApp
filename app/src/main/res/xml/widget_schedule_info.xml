@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 2×2 正方形小组件：110dp ≈ 2 个单元格（(110+30)/70 = 2），锁定尺寸保证始终是正方形 -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:description="@string/widget_description"
+    android:initialLayout="@layout/widget_schedule"
+    android:minHeight="110dp"
+    android:minWidth="110dp"
+    android:previewLayout="@layout/widget_schedule"
+    android:resizeMode="none"
+    android:targetCellHeight="2"
+    android:targetCellWidth="2"
+    android:updatePeriodMillis="1800000"
+    android:widgetCategory="home_screen" />

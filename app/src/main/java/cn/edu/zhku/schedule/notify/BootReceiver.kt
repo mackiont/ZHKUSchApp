@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import cn.edu.zhku.schedule.data.Prefs
+import cn.edu.zhku.schedule.widget.ScheduleWidget
 import cn.edu.zhku.schedule.work.DailyWork
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -41,6 +42,8 @@ class BootReceiver : BroadcastReceiver() {
                     )
                 }
                 DailyWork.scheduleNext(appContext, settings.fetchMinuteOfDay)
+                // 闹钟不跨重启，小组件的刷新闹钟同样要重排（同时也是开机后的一次重绘）
+                ScheduleWidget.refreshNow(appContext)
             } catch (_: Exception) {
                 // 开机广播里失败不重试，下次打开应用会重排
             } finally {

@@ -1,4 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">仲恺课表</string>
+
+    <!-- 桌面小组件 -->
+    <string name="widget_label">最近一节课</string>
+    <string name="widget_description">2×2 小组件：显示最近一节课的课程、地点与实时倒计时</string>
+    <!-- 下面几条只用于小组件选择器的预览，实际文字在运行时替换 -->
+    <string name="widget_status_placeholder">下一节课 · 今天</string>
+    <string name="widget_course_placeholder">高等数学II（1）</string>
+    <string name="widget_meta_placeholder">08:40 · 经管楼209</string>
 </resources>

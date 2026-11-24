@@ -2,6 +2,7 @@ package cn.edu.zhku.schedule.data
 
 import android.content.Context
 import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
@@ -9,6 +10,7 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import cn.edu.zhku.schedule.widget.ScheduleWidget
 import kotlinx.coroutines.flow.first
 import kotlinx.serialization.json.Json
 
@@ -44,6 +46,15 @@ class Prefs(context: Context) {
 
     private suspend fun read(): Preferences = appContext.dataStore.data.first()
 
+    /**
+     * 所有写盘的统一入口：写完顺手刷新桌面小组件。
+     * 课表、节次、数据模式、登录态任何一处变了，小组件都要马上跟着变。
+     */
+    private suspend fun write(block: suspend (MutablePreferences) -> Unit) {
+        appContext.dataStore.edit(block)
+        ScheduleWidget.requestRefresh(appContext)
+    }
+
     suspend fun settings(): Settings {
         val p = read()
         val campus = runCatching {
@@ -73,7 +84,7 @@ class Prefs(context: Context) {
     suspend fun cookie(): String = read()[K.COOKIE] ?: ""
 
     suspend fun saveCredentials(account: String, password: String, cookie: String) {
-        appContext.dataStore.edit {
+        write {
             it[K.ACCOUNT] = account
             if (password.isNotEmpty()) it[K.PASSWORD] = password
             if (cookie.isNotEmpty()) it[K.COOKIE] = cookie
@@ -81,15 +92,15 @@ class Prefs(context: Context) {
     }
 
     suspend fun saveCookie(cookie: String) {
-        appContext.dataStore.edit { it[K.COOKIE] = cookie }
+        write { it[K.COOKIE] = cookie }
     }
 
     suspend fun clearCookie() {
-        appContext.dataStore.edit { it[K.COOKIE] = "" }
+        write { it[K.COOKIE] = "" }
     }
 
     suspend fun logout() {
-        appContext.dataStore.edit {
+        write {
             it[K.PASSWORD] = ""
             it[K.COOKIE] = ""
             it[K.ACCOUNT] = ""
@@ -108,14 +119,14 @@ class Prefs(context: Context) {
     }
 
     suspend fun saveTimetable(timetable: Timetable) {
-        appContext.dataStore.edit {
+        write {
             it[K.TIMETABLE] = json.encodeToString(Timetable.serializer(), timetable)
         }
     }
 
     /** 保存本地导入的课表，并把数据来源切成本地模式 */
     suspend fun saveLocalTimetable(timetable: Timetable, fileName: String) {
-        appContext.dataStore.edit {
+        write {
             it[K.TIMETABLE] = json.encodeToString(Timetable.serializer(), timetable)
             it[K.MODE] = DataMode.LOCAL.name
             it[K.SOURCE_NAME] = fileName
@@ -127,44 +138,44 @@ class Prefs(context: Context) {
     /** 只改当前周基线（本地课表放久了会跑偏，允许手动校正） */
     suspend fun rebaseWeek(timetable: Timetable, week: Int) {
         val rebased = timetable.withWeek(week, WeekSource.MANUAL)
-        appContext.dataStore.edit {
+        write {
             it[K.TIMETABLE] = json.encodeToString(Timetable.serializer(), rebased)
         }
     }
 
     suspend fun setMode(mode: DataMode) {
-        appContext.dataStore.edit { it[K.MODE] = mode.name }
+        write { it[K.MODE] = mode.name }
     }
 
     suspend fun setAutoFetch(enabled: Boolean) {
-        appContext.dataStore.edit { it[K.AUTO_FETCH] = enabled }
+        write { it[K.AUTO_FETCH] = enabled }
     }
 
     suspend fun setFetchMinute(minuteOfDay: Int) {
-        appContext.dataStore.edit { it[K.FETCH_MINUTE] = minuteOfDay.coerceIn(0, 1439) }
+        write { it[K.FETCH_MINUTE] = minuteOfDay.coerceIn(0, 1439) }
     }
 
     suspend fun setNotifyEnabled(enabled: Boolean) {
-        appContext.dataStore.edit { it[K.NOTIFY_ENABLED] = enabled }
+        write { it[K.NOTIFY_ENABLED] = enabled }
     }
 
     suspend fun setNotifyLead(minutes: Int) {
-        appContext.dataStore.edit { it[K.NOTIFY_LEAD] = minutes.coerceIn(0, 120) }
+        write { it[K.NOTIFY_LEAD] = minutes.coerceIn(0, 120) }
     }
 
     suspend fun setCampus(campus: CampusPreset) {
-        appContext.dataStore.edit {
+        write {
             it[K.CAMPUS] = campus.name
             it[K.SECTIONS] = SectionTimes.encode(SectionTimes.preset(campus))
         }
     }
 
     suspend fun setSections(sections: List<SectionTime>) {
-        appContext.dataStore.edit { it[K.SECTIONS] = SectionTimes.encode(sections) }
+        write { it[K.SECTIONS] = SectionTimes.encode(sections) }
     }
 
     suspend fun markFetch(ok: Boolean, error: String = "") {
-        appContext.dataStore.edit {
+        write {
             if (ok) {
                 it[K.LAST_FETCH_AT] = System.currentTimeMillis()
                 it[K.LAST_ERROR] = ""
@@ -177,6 +188,6 @@ class Prefs(context: Context) {
     suspend fun alarmCount(): Int = read()[K.ALARM_COUNT] ?: 0
 
     suspend fun setAlarmCount(count: Int) {
-        appContext.dataStore.edit { it[K.ALARM_COUNT] = count }
+        write { it[K.ALARM_COUNT] = count }
     }
 }

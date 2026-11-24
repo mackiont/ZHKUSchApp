@@ -1,6 +1,6 @@
 # 仲恺课表 · ZHKU Schedule
 
-> 仲恺农业工程学院教务系统的第三方 Android 课表客户端：自动登录抓课表、首页倒计时、周视图、上课提醒，也可完全离线用一份 JSON 课表。
+> 仲恺农业工程学院教务系统的第三方 Android 课表客户端：自动登录抓课表、首页倒计时、桌面小组件、周视图、上课提醒，也可完全离线用一份 JSON 课表。
 
 [![Build APK & Release](https://github.com/mackiont/ZHKUSchApp/actions/workflows/build-release.yml/badge.svg)](https://github.com/mackiont/ZHKUSchApp/actions/workflows/build-release.yml)
 [![Unit Tests](https://github.com/mackiont/ZHKUSchApp/actions/workflows/ci.yml/badge.svg)](https://github.com/mackiont/ZHKUSchApp/actions/workflows/ci.yml)
@@ -26,6 +26,24 @@ Kotlin + Jetpack Compose + Material 3，单 Activity 纯原生实现。最低支
 **设置** — 在线 / 本地模式互切、导入导出课表 JSON、查看与校正教学周、每天定时自动获取、上课通知与提前分钟数、节次时间（白云 / 海珠预设 + 逐节微调）、立即获取、退出登录。
 
 **后台** — WorkManager 定时抓取（失败指数退避，重启手机仍有效）；AlarmManager 精确闹钟提前提醒（Android 12+ 无权限时降级为非精确）。
+
+**桌面小组件** — 2×2 正方形，显示最近一节课的课程名、开始时间、地点与逐秒倒计时，点一下打开应用。
+
+## 桌面小组件
+
+从桌面添加「仲恺课表 · 最近一节课」即可，2×2 正方形固定尺寸。正在上课时显示当前这节和「还剩」倒计时，否则显示下一节和「还有」倒计时；还没课表时提示去应用里登录或导入。
+
+| 浅色 | 深色 |
+|---|---|
+| ![小组件](screenshots/widget.png) | ![小组件深色](screenshots/widget_dark.png) |
+
+「准时」靠两层配合，不做每分钟唤醒：
+
+- **倒计时数字**交给 `Chronometer` 自己逐秒渲染，桌面进程负责刷新，App 睡着了数字也照走；
+- **状态切换**（下一节 → 上课中 → 再下一节、以及跨天换「今天/明天」）只在关键那一秒用 `AlarmManager` 精确闹钟唤醒一次，改完再排下一次；
+- 抓课表、导入、改节次、退出登录等任何写入都会立刻重绘，另有 30 分钟的系统兜底刷新。
+
+> Android 14 起 `SCHEDULE_EXACT_ALARM` 默认不授予，没有该权限时闹钟退化为非精确：切换「上课中」可能晚几分钟，但倒计时数字始终准确。
 
 ## 下载安装
 
